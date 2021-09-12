@@ -17,15 +17,15 @@ const getAllContacts = async (req, res, next) => {
   try {
     const { page = 1, limit = 2 } = req.query;
     const skip = (page - 1) * limit;
-    const pages = await Contact.find({});
+    /* const pages = await Contact.find({}); */
     const result = await Contact.find({ owner: req.user._id }, "", {
       skip,
       limit: +limit,
     }).populate("owner", "_id email");
 
     res.status(200).json({
-      total: pages.length,
-      pages: Math.ceil(pages.length / limit),
+      /* total: pages.length,
+      pages: Math.ceil(pages.length / limit), */
       result,
     });
   } catch (error) {
