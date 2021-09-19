@@ -1,7 +1,7 @@
 const { Schema, model } = require("mongoose");
 const bCrypt = require("bcryptjs");
 const Joi = require("joi");
-const { version } = require("joi");
+const { v4 } = require("uuid");
 
 const userSchema = Schema(
   {
@@ -27,6 +27,14 @@ const userSchema = Schema(
       type: String,
       default: "",
     },
+    verify: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      required: [true, "Verify token is required"],
+    },
   },
 
   { versionKey: false, timestamps: true }
@@ -48,6 +56,8 @@ const joiSchema = Joi.object({
   subscription: Joi.string(),
   token: Joi.string(),
   avatarURL: Joi.string(),
+  verify: Joi.boolean(),
+  verificationToken: Joi.string(),
 });
 
 module.exports = {

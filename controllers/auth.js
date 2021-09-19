@@ -5,6 +5,8 @@ const fs = require("fs/promises");
 const path = require("path");
 const gravatar = require("gravatar");
 const Jimp = require("jimp");
+const { v4 } = require("uuid");
+const { sendMail } = require("../utils");
 
 const avatarsDir = path.join(__dirname, "../", "public/avatars");
 
@@ -15,11 +17,22 @@ const signup = async (req, res, next) => {
   if (user) {
     throw new Conflict("Email in use");
   }
-  const newUser = new User({ email, avatarURL: `https:${avatarDefault}` });
+  const newUser = new User({
+    email,
+    avatarURL: `${avatarDefault}`,
+    verificationToken: v4(),
+  });
   newUser.setPassword(password);
   const id = newUser._id.toString();
   const dirPath = path.join(avatarsDir, id);
   await fs.mkdir(dirPath);
+  const { verificationToken } = newUser;
+  const data = {
+    to: email,
+    subject: "confirmation of registration on the site",
+    html: `<a href="http://localhost:3000/users/verify/${verificationToken}" > Verify your registration </a>`,
+  };
+  await sendMail(data);
   await newUser.save();
   res.status(201).json({
     user: {
@@ -36,6 +49,9 @@ const login = async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user || !user.validPassword(password)) {
       throw new Unauthorized("Email or password is wrong");
+    }
+    if (!user.verify) {
+      throw new Unauthorized("Email not verified");
     }
     const payload = {
       id: user._id,
@@ -91,10 +107,26 @@ const updateAvatar = async (req, res) => {
   }
 };
 
+const verify = async (req, res) => {
+  const { verificationToken } = req.params;
+  const user = await User.findOne({ verificationToken });
+  if (!user) {
+    res.status(404).json({
+      message: "User not found",
+    });
+  }
+  await User.findByIdAndUpdate(user._id, {
+    verificationToken: null,
+    verify: true,
+  });
+  res.send("<h2>Verification successful</h2>");
+};
+
 module.exports = {
   signup,
   login,
   logout,
   current,
   updateAvatar,
+  verify,
 };
